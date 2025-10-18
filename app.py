@@ -1,6 +1,3 @@
-
-# --- app.py ---
-app_py = '''
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -8,6 +5,9 @@ import matplotlib.pyplot as plt
 from statsmodels.tsa.arima.model import ARIMA
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, mean_absolute_error
+
+# Вимикаємо автоматичне відстеження файлів, щоб уникнути EMFILE
+st.set_option('server.fileWatcherType', 'none')
 
 st.set_page_config(page_title="Прогнозування попиту", layout="wide")
 st.title("Система прогнозування попиту")
@@ -48,6 +48,7 @@ if uploaded_file is not None:
                 forecast_values = lr.predict(future_t)
                 forecast = pd.Series(forecast_values, index=pd.date_range(start=ts.index[-1]+pd.Timedelta(days=1), periods=periods))
             
+            # Графік
             plt.figure(figsize=(10,5))
             plt.plot(ts.index, ts['Продажі'], label="Історія")
             plt.plot(forecast.index, forecast, label="Прогноз", color='red')
@@ -57,6 +58,7 @@ if uploaded_file is not None:
             plt.legend()
             st.pyplot(plt)
             
+            # Метрики точності
             if model_option == "ARIMA":
                 predictions = model_fit.predict(start=0, end=len(ts)-1)
             else:
@@ -68,6 +70,4 @@ if uploaded_file is not None:
             st.write(f"**MAE:** {mae:.2f}")
     else:
         st.error("CSV повинен містити стовпці: 'Дата', 'Товар', 'Продажі'")
-'''
-
-
+            
