@@ -35,10 +35,10 @@ if uploaded_file:
     if st.button("Зробити прогноз"):
         if model_choice == "Linear Regression":
             # Підготовка даних
-            product_df = product_df.reset_index()
-            product_df['day'] = (product_df['date'] - product_df['date'].min()).dt.days
-            X = product_df[['day']]
-            y = product_df['sales']
+            product_df_reset = product_df.reset_index()
+            product_df_reset['day'] = (product_df_reset['date'] - product_df_reset['date'].min()).dt.days
+            X = product_df_reset[['day']]
+            y = product_df_reset['sales']
 
             model = LinearRegression()
             model.fit(X, y)
@@ -52,7 +52,7 @@ if uploaded_file:
             mae = mean_absolute_error(y, y_pred)
 
         else:  # ARIMA
-            model = ARIMA(product_df['sales'], order=(1,1,1))  # простий приклад
+            model = ARIMA(product_df['sales'], order=(1,1,1))
             model_fit = model.fit()
             forecast = model_fit.forecast(steps=forecast_horizon)
 
@@ -65,8 +65,8 @@ if uploaded_file:
         # --- 5. Візуалізація прогнозу ---
         st.subheader("Графік прогнозу")
         plt.figure(figsize=(10,5))
-        plt.plot(product_df['date'], product_df['sales'], label='Історія')
-        future_dates = pd.date_range(product_df['date'].max() + pd.Timedelta(days=1), periods=forecast_horizon)
+        plt.plot(product_df.index, product_df['sales'], label='Історія')
+        future_dates = pd.date_range(product_df.index.max() + pd.Timedelta(days=1), periods=forecast_horizon)
         plt.plot(future_dates, forecast, color='red', marker='o', label='Прогноз')
         plt.xlabel("Дата")
         plt.ylabel("Продажі")
@@ -77,4 +77,5 @@ if uploaded_file:
         st.subheader("Метрики точності на історичних даних")
         st.write(f"Mean Squared Error (MSE): {mse:.2f}")
         st.write(f"Mean Absolute Error (MAE): {mae:.2f}")
+
 
