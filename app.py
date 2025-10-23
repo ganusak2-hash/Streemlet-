@@ -5,43 +5,39 @@ import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from statsmodels.tsa.arima.model import ARIMA
-import io
 import requests
+from io import StringIO
 
-# === Заголовок додатку ===
+st.set_page_config(page_title="Прогнозування попиту", layout="wide")
 st.title("Система прогнозування попиту")
 
-# === 1. Завантаження CSV з GitHub або локально ===
-url = "https://raw.githubusercontent.com/USERNAME/REPO/main/sales_example.csv"  # <- заміни на свій raw URL
+# ===== 1. Зчитування CSV з GitHub (raw URL) =====
+RAW_URL = "https://raw.githubusercontent.com/ganusak2-hash/demand_forecast/main/sales_example.csv"
 
 try:
-    content = requests.get(url).content
-    data = pd.read_csv(io.StringIO(content.decode('utf-8')))
+    content = requests.get(RAW_URL).content
+    data = pd.read_csv(StringIO(content.decode('utf-8')))
     st.success("CSV успішно завантажено з GitHub!")
 except Exception:
-    st.warning("Не вдалося завантажити з GitHub, використовується локальний файл.")
-    data = pd.read_csv("sales_example.csv", encoding="utf-8")
+    st.error("Не вдалося завантажити CSV з GitHub.")
+    st.stop()
 
-# === 2. Перевірка стовпців ===
-st.subheader("Назви стовпців у CSV")
-st.write(data.columns.tolist())
+# ===== 2. Вибір колонок =====
+date_col = "date"
+product_col = "product"
+sales_col = "sales"
 
-# Автоматично підбираємо колонки, якщо вони існують
-date_col = "date" if "date" in data.columns else data.columns[0]
-product_col = "product" if "product" in data.columns else data.columns[1]
-sales_col = "sales" if "sales" in data.columns else data.columns[2]
-
-# === 3. Вибір товару ===
+# ===== 3. Вибір товару =====
 products = data[product_col].unique()
-selected_product = st.selectbox("Оберіть товар", products)
+selected_product = st.selectbox("Оберіть товар:", products)
 product_data = data[data[product_col] == selected_product].copy()
 
-# === 4. Підготовка даних ===
+# ===== 4. Підготовка даних =====
 product_data[date_col] = pd.to_datetime(product_data[date_col])
 product_data = product_data.sort_values(by=date_col)
 product_data['t'] = np.arange(len(product_data))
 
-# === 5. Вибір моделі ===
+# ===== 5. Вибір моделі =====
 model_type = st.radio("Оберіть модель прогнозування:", ["Linear Regression", "ARIMA"])
 n_days = st.slider("Кількість днів для прогнозу:", 3, 14, 7)
 
@@ -59,18 +55,18 @@ elif model_type == "ARIMA":
     model_fit = model.fit()
     forecast = model_fit.forecast(steps=n_days)
 
-# === 6. Графік прогнозу ===
+# ===== 6. Графік прогнозу =====
 future_dates = pd.date_range(product_data[date_col].iloc[-1] + pd.Timedelta(days=1), periods=n_days)
 plt.figure(figsize=(10, 5))
 plt.plot(product_data[date_col], product_data[sales_col], label="Реальні дані", marker='o')
 plt.plot(future_dates, forecast, label="Прогноз", marker='x')
 plt.xlabel("Дата")
 plt.ylabel("Продажі")
-plt.title(f"Прогноз продажів товару: {selected_product}")
+plt.title(f"Прогноз продажів: {selected_product}")
 plt.legend()
 st.pyplot(plt)
 
-# === 7. Метрики точності (на історичних даних) ===
+# ===== 7. Метрики точності =====
 if len(product_data) > 5:
     train_part = product_data[:-3]
     test_part = product_data[-3:]
@@ -87,5 +83,5 @@ if len(product_data) > 5:
     mae = mean_absolute_error(test_part[sales_col], preds)
 
     st.subheader("Метрики точності на історичних даних")
-    st.write(f"**Mean Squared Error (MSE):** {mse:.2f}")
-    st.write(f"**Mean Absolute Error (MAE):** {mae:.2f}")
+    st.write(f"Mean Squared Error (MSE): {mse:.2f}")
+    st.write(f"Mean Absolute Error (MAE): {mae:.2f}")
